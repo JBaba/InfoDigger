@@ -26,8 +26,6 @@ public class InvokeUrl {
 
 	private String jobUrl = "http://www.cybercoders.com/";
 	private String pageNum = "1";
-	private String pageNumUrl = "http://www.cybercoders.com/search/?page=" + pageNum
-			+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
 	private String prePageNum = "0";
 	private List<String> jobIds = null;
 	private List<JobModal> jobs= null;
