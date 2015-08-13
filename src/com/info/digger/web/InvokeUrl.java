@@ -52,31 +52,12 @@ public class InvokeUrl {
 	 * get HTML page from URL
 	 * @param URL
 	 * @return
+	 * @throws IOException 
 	 */
-	public StringBuffer getHTML(String URL) {
-		URL url;
-
-		try {
-			// get URL content
-			url = new URL(URL);
-			URLConnection conn = url.openConnection();
-			StringBuffer html = new StringBuffer();
-
-			// open the stream and put it into BufferedReader
-			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-
-			String inputLine;
-			while ((inputLine = br.readLine()) != null) {
-				html.append(inputLine);
-			}
-			br.close();
-			return html;
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return null;
+	public Document getHTML(String URL) throws IOException {		
+		Document doc = null;
+		doc = Jsoup.connect(URL).get();
+		return doc;
 	}
 
 	/**
@@ -85,8 +66,7 @@ public class InvokeUrl {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	public InvokeUrl getInfo(StringBuffer html) throws InterruptedException {
-		Document doc = Jsoup.parse(html.toString()); // parsing 
+	public InvokeUrl getInfo(Document doc) throws InterruptedException {
 
 		Elements content = doc.getElementsByClass("job-listing-item"); // Getting job item from main page
 		
@@ -99,7 +79,6 @@ public class InvokeUrl {
 		}
 		
 		doneSignal.await();           // wait for all to finish
-	    //System.out.println("Finished all threads");
 
 		return this;
 	}
@@ -111,14 +90,8 @@ public class InvokeUrl {
 	 */
 	public InvokeUrl getInfoJobDesc(StringBuffer jobHtml) {
 		Document doc = Jsoup.parse(jobHtml.toString()); // parsing 
-
-		Elements content = doc.getElementsByClass("job-details"); // getting job desc
-		//System.out.println(content.text());
-
 		Elements job_id = doc.getElementsByClass("job-id"); // job id
 		jobIds.add(job_id.text());
-		//System.out.println(job_id.text());
-
 		return this;
 	}
 	
@@ -129,17 +102,14 @@ public class InvokeUrl {
 	 * @param job
 	 * @return
 	 */
-	public InvokeUrl getInfoJobDescSetInJob(StringBuffer jobHtml,JobModal job) {
-		Document doc = Jsoup.parse(jobHtml.toString()); // parsing
+	public InvokeUrl getInfoJobDescSetInJob(Document doc,JobModal job) {
 
 		Elements content = doc.getElementsByClass("job-details"); // getting job des
 		job.setDetails(content.text());
-		//System.out.println(content.text());
 
 		Elements job_id = doc.getElementsByClass("job-id"); // job id
 		job.setJobid(job_id.text());
 		jobIds.add(job_id.text());
-		//System.out.println(job_id.text());
 
 		return this;
 	}
@@ -153,7 +123,6 @@ public class InvokeUrl {
 		String linkText = null;
 		for (Element link : anchor) {
 			linkText = link.attr("href"); // get value from href attribute
-			//System.out.println(linkText);
 			break;
 		}
 		return linkText;
@@ -166,7 +135,6 @@ public class InvokeUrl {
 	 */
 	public String printFirstTagInnerHtml(Element element) {
 		String linkText = element.text();
-		//System.out.println(linkText);
 		return linkText;
 	}
 
@@ -178,7 +146,6 @@ public class InvokeUrl {
 	public String printFirstTagInnerHtmlFromList(Elements elements) {
 		for (Element link : elements) {
 			String linkText = link.text(); // find first and return
-			//System.out.println(linkText);
 			return linkText;
 		}
 		return null;
@@ -206,16 +173,15 @@ public class InvokeUrl {
 	 * get maximum page size
 	 * @param html
 	 * @return
+	 * @throws IOException 
 	 */
-	public String getMaxPagerSize(StringBuffer html) {
-		Document doc = Jsoup.parse(html.toString()); // parsing 
+	public String getMaxPagerSize(Document doc) throws IOException {
 		String nextPageNum = pageNum;
 
 		// Retrieve section which has pager or page number list with url
 		Elements content = doc.getElementsByClass("page-item-number"); 
 		for (Element elemnt : content) {
 			nextPageNum = elemnt.text();
-			//System.out.println(elemnt.text());
 		}
 
 		if ((Integer.parseInt(nextPageNum)) < (Integer.parseInt(prePageNum))) {
@@ -227,8 +193,8 @@ public class InvokeUrl {
 		nextPageNum = ((Integer.parseInt(nextPageNum)) + 1) + "";
 		String nextPageNumUrl = "http://www.cybercoders.com/search/?page=" + nextPageNum
 				+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
-		StringBuffer nexthtml = getHTML(nextPageNumUrl);
-		getMaxPagerSize(nexthtml);
+		doc = getHTML(nextPageNumUrl);
+		getMaxPagerSize(doc);
 
 		return null;
 	}
@@ -265,7 +231,7 @@ public class InvokeUrl {
 		return this;
 	}
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException, IOException {
 
 		long tStart = System.currentTimeMillis();
 
