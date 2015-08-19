@@ -1,5 +1,6 @@
 package com.info.digger.web;
 
+import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 import org.jsoup.nodes.Element;
@@ -19,41 +20,37 @@ public class WorkerJob implements Runnable{
 
 	@Override
 	public void run() {
-		getInfo();
+		try {
+			getInfo();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		doneSignal.countDown();
 	}
 
-	private void getInfo() {
+	private void getInfo() throws IOException {
 		
 		JobModal job = new JobModal();
 		String ans;
 		
-		//System.out.print("Title: ");
 		Elements anchor = elemnt.getElementsByTag("a");
 		ans=jobUrlObj.printFirstTagInnerHtmlFromList(anchor);
 		job.setTitle(ans);
-		//System.out.print("Href: ");
 
 		// Location
-		//System.out.print("Location: ");
 		Elements location = elemnt.getElementsByClass("location");
 		job.setLocation(location.text());
-		//System.out.println(location.text());
 
 		// wage
-		//System.out.print("Salary: ");
 		Elements wage = elemnt.getElementsByClass("wage");
 		job.setSalary(wage.text());
-		//System.out.println(wage.text());
 
 		// posted
-		//System.out.print("Date: ");
 		Elements posted = elemnt.getElementsByClass("posted");
 		job.setDate(posted.text());
-		//System.out.println(posted.text());
 
 		// List of skill
-		//System.out.print("Skill List: ");
 		Elements skill_items = elemnt.getElementsByClass("skill-item");
 		for (Element skill_item : skill_items) {
 			ans = jobUrlObj.printFirstTagInnerHtml(skill_item);
