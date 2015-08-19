@@ -33,6 +33,7 @@ public class InvokeUrl {
 	private List<String> jobIds = null;
 	private List<JobModal> jobs= null;
 	private List<String> pageURLs = null;
+	private volatile int count = 0;
 	
 	public InvokeUrl() {
 		
@@ -67,12 +68,17 @@ public class InvokeUrl {
 	public Document getHTML(String URL) throws IOException {		
 		Document doc = null;
 		try{
-			doc = Jsoup.connect(URL).timeout(10*1000).get();
+			doc = Jsoup.connect(URL).timeout(0).get();
 		}catch(SocketTimeoutException e){
 			try{
-				doc = Jsoup.connect(URL).timeout(10*1000).get();
+				doc = Jsoup.connect(URL).timeout(0).get();
+				
 			}catch(SocketTimeoutException ee){
-				System.err.println("Had exp for "+URL);
+				
+				synchronized(this){
+					count++;
+					System.err.println(count+" : Had exp for "+URL);
+				}
 				return null;
 			}
 		}
@@ -293,7 +299,7 @@ public class InvokeUrl {
 		doneSignal.await();           // wait for all to finish
 
 		printSeparator();
-		printList(getJobs());
+		//printList(getJobs());
 		printSeparator();
 		System.out.println("No of job retrived: "+jobs.size());
 	}
@@ -317,6 +323,8 @@ public class InvokeUrl {
 
 	public static void main(String[] args) throws InterruptedException, Exception {
 
+		//printActivecount();
+		
 		long tStart = System.currentTimeMillis();
 
 		String url = null;
@@ -330,9 +338,27 @@ public class InvokeUrl {
 		long tDelta = tEnd - tStart;
 		double elapsedSeconds = tDelta / 1000.0;
 		System.out.println("Time :" + elapsedSeconds);
-		 
+		
 	}
-
+	
+	public static void printActivecount(){
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while(true){
+					System.out.println("AC :"+Thread.activeCount());
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+	}
+	
 	public String getJobUrl() {
 		return jobUrl;
 	}
