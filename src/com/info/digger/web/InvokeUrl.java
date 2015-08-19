@@ -67,7 +67,7 @@ public class InvokeUrl {
 	 */
 	public Document getHTML(String URL) throws IOException {		
 		Document doc = null;
-		doc = Jsoup.connect(URL).get();
+		doc = Jsoup.connect(URL).timeout(10*1000).get();
 		return doc;
 	}
 
@@ -251,7 +251,7 @@ public class InvokeUrl {
 	@SuppressWarnings({ "rawtypes", "unused" })
 	public void getAllJobs() throws InterruptedException, IOException{
 		
-		int size = 10;
+		int size = 20;
 		int temp = 0;
 		// Parallel code execution for idivisual element
 		CountDownLatch doneSignal = new CountDownLatch(size);
@@ -272,7 +272,9 @@ public class InvokeUrl {
 			
 			new Thread(new WorkerFunctorImpl(doneSignal,job)).start();
 			
-			
+			if(temp == size){
+				break;
+			}
 			/*executor.execute(
 					new WorkerFunctorImpl(doneSignal,job)		
 			);*/
@@ -283,6 +285,8 @@ public class InvokeUrl {
 
 		printSeparator();
 		printList(getJobs());
+		printSeparator();
+		System.out.println("No of job retrived: "+jobs.size());
 	}
 	
 	public void getAll(String url) throws Exception{
