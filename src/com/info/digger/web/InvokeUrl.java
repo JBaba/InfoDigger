@@ -4,14 +4,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -67,7 +66,16 @@ public class InvokeUrl {
 	 */
 	public Document getHTML(String URL) throws IOException {		
 		Document doc = null;
-		doc = Jsoup.connect(URL).timeout(10*1000).get();
+		try{
+			doc = Jsoup.connect(URL).timeout(10*1000).get();
+		}catch(SocketTimeoutException e){
+			try{
+				doc = Jsoup.connect(URL).timeout(10*1000).get();
+			}catch(SocketTimeoutException ee){
+				System.err.println("Had exp for "+URL);
+				return null;
+			}
+		}
 		return doc;
 	}
 
@@ -78,20 +86,20 @@ public class InvokeUrl {
 	 * @throws InterruptedException
 	 */
 	public InvokeUrl getInfo(Document doc) throws InterruptedException {
-
-		Elements content = doc.getElementsByClass("job-listing-item"); // Getting job item from main page
-		
-		// Parallel code execution for idivisual element
-		CountDownLatch doneSignal = new CountDownLatch(content.size());
-		//ExecutorService executor = Executors.newFixedThreadPool(content.size());
-
-		for (Element elemnt : content) {
-			new Thread(new WorkerJob(doneSignal, elemnt, this)).start();
-			//executor.execute(new WorkerJob(doneSignal, elemnt, this));
+		if(doc != null){
+			Elements content = doc.getElementsByClass("job-listing-item"); // Getting job item from main page
+			
+			// Parallel code execution for idivisual element
+			CountDownLatch doneSignal = new CountDownLatch(content.size());
+			//ExecutorService executor = Executors.newFixedThreadPool(content.size());
+	
+			for (Element elemnt : content) {
+				new Thread(new WorkerJob(doneSignal, elemnt, this)).start();
+				//executor.execute(new WorkerJob(doneSignal, elemnt, this));
+			}
+			
+			doneSignal.await();           // wait for all to finish
 		}
-		
-		doneSignal.await();           // wait for all to finish
-
 		return this;
 	}
 
@@ -115,14 +123,14 @@ public class InvokeUrl {
 	 * @return
 	 */
 	public InvokeUrl getInfoJobDescSetInJob(Document doc,JobModal job) {
-
-		Elements content = doc.getElementsByClass("job-details"); // getting job des
-		job.setDetails(content.text());
-
-		Elements job_id = doc.getElementsByClass("job-id"); // job id
-		job.setJobid(job_id.text());
-		jobIds.add(job_id.text());
-
+		if(doc != null){
+			Elements content = doc.getElementsByClass("job-details"); // getting job des
+			job.setDetails(content.text());
+	
+			Elements job_id = doc.getElementsByClass("job-id"); // job id
+			job.setJobid(job_id.text());
+			jobIds.add(job_id.text());
+		}
 		return this;
 	}
 
@@ -188,31 +196,32 @@ public class InvokeUrl {
 	 * @throws IOException 
 	 */
 	public String getMaxPagerSize(Document doc) throws IOException {
-		String nextPageNum = pageNum;
-
-		// Retrieve section which has pager or page number list with url
-		Elements content = doc.getElementsByClass("page-item-number"); 
-		for (Element elemnt : content) {
-			nextPageNum = elemnt.text();
+		if(doc != null){
+			String nextPageNum = pageNum;
+	
+			// Retrieve section which has pager or page number list with url
+			Elements content = doc.getElementsByClass("page-item-number"); 
+			for (Element elemnt : content) {
+				nextPageNum = elemnt.text();
+				nextPageNum = ((Integer.parseInt(nextPageNum)) + 1) + "";
+				String nextPageNumUrl = "http://www.cybercoders.com/search/?page=" + nextPageNum
+						+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
+				pageURLs.add(nextPageNumUrl);
+			}
+	
+			if ((Integer.parseInt(nextPageNum)) < (Integer.parseInt(prePageNum))) {
+				System.out.println("No more pages.");
+				return null;
+			}
+	
+			prePageNum = nextPageNum;
 			nextPageNum = ((Integer.parseInt(nextPageNum)) + 1) + "";
 			String nextPageNumUrl = "http://www.cybercoders.com/search/?page=" + nextPageNum
 					+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
-			pageURLs.add(nextPageNumUrl);
+			pageURLs.add(nextPageNumUrl); // add URL to list
+			doc = getHTML(nextPageNumUrl);
+			getMaxPagerSize(doc);
 		}
-
-		if ((Integer.parseInt(nextPageNum)) < (Integer.parseInt(prePageNum))) {
-			System.out.println("No more pages.");
-			return null;
-		}
-
-		prePageNum = nextPageNum;
-		nextPageNum = ((Integer.parseInt(nextPageNum)) + 1) + "";
-		String nextPageNumUrl = "http://www.cybercoders.com/search/?page=" + nextPageNum
-				+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
-		pageURLs.add(nextPageNumUrl); // add URL to list
-		doc = getHTML(nextPageNumUrl);
-		getMaxPagerSize(doc);
-
 		return null;
 	}
 
@@ -251,7 +260,7 @@ public class InvokeUrl {
 	@SuppressWarnings({ "rawtypes", "unused" })
 	public void getAllJobs() throws InterruptedException, IOException{
 		
-		int size = 20;
+		int size = pageURLs.size();
 		int temp = 0;
 		// Parallel code execution for idivisual element
 		CountDownLatch doneSignal = new CountDownLatch(size);

@@ -6,6 +6,8 @@ import java.util.concurrent.CountDownLatch;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import com.info.digger.web.functor.IWorkerFunctor;
+
 public class WorkerJob implements Runnable{
 
 	private final CountDownLatch doneSignal;
@@ -31,7 +33,7 @@ public class WorkerJob implements Runnable{
 
 	private void getInfo() throws IOException {
 		
-		JobModal job = new JobModal();
+		final JobModal job = new JobModal();
 		String ans;
 		
 		Elements anchor = elemnt.getElementsByTag("a");
@@ -58,10 +60,26 @@ public class WorkerJob implements Runnable{
 		}
 
 		// Job desc in details
-		String jobdesUrl = jobUrlObj.getJobUrl() + jobUrlObj.getLink(anchor); // job Description url
+		final String jobdesUrl = jobUrlObj.getJobUrl() + jobUrlObj.getLink(anchor); // job Description url
 		job.setJobDescUrl(jobdesUrl);
-		jobUrlObj.getInfoJobDescSetInJob(jobUrlObj.getHTML(jobdesUrl),job);
 		
+		Runnable subJob = new Runnable() {
+			
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				try {
+					jobUrlObj.getInfoJobDescSetInJob(jobUrlObj.getHTML(jobdesUrl),job);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}
+		};
+		new Thread(subJob).start();
+		
+		/*jobUrlObj.getInfoJobDescSetInJob(jobUrlObj.getHTML(jobdesUrl),job);*/
 		jobUrlObj.addJob(job);
 		
 	}
