@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -16,6 +17,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import com.info.digger.web.functor.IWorkerFunctor;
+import com.info.digger.web.functor.WorkerFunctorImpl;
 
 /**
  * This class is to retrieve jobs from cybercoders
@@ -29,7 +33,8 @@ public class InvokeUrl {
 	private String prePageNum = "0";
 	private List<String> jobIds = null;
 	private List<JobModal> jobs= null;
-
+	private List<String> pageURLs = null;
+	
 	public InvokeUrl() {
 		
 		System.setProperty("http.agent",
@@ -37,6 +42,12 @@ public class InvokeUrl {
 		
 		jobIds = new LinkedList<String>();
 		jobs = new LinkedList<JobModal>();
+		pageURLs = new LinkedList<String>();
+	}
+	
+	public void addURLToPageList(String url){
+		if(!pageURLs.contains(url))
+			pageURLs.add(url);
 	}
 	
 	/**
@@ -72,10 +83,11 @@ public class InvokeUrl {
 		
 		// Parallel code execution for idivisual element
 		CountDownLatch doneSignal = new CountDownLatch(content.size());
-		ExecutorService executor = Executors.newFixedThreadPool(content.size());
+		//ExecutorService executor = Executors.newFixedThreadPool(content.size());
 
 		for (Element elemnt : content) {
-			executor.execute(new WorkerJob(doneSignal, elemnt, this));
+			new Thread(new WorkerJob(doneSignal, elemnt, this)).start();
+			//executor.execute(new WorkerJob(doneSignal, elemnt, this));
 		}
 		
 		doneSignal.await();           // wait for all to finish
@@ -156,7 +168,7 @@ public class InvokeUrl {
 	 * @param jobIds
 	 */
 	@SuppressWarnings("rawtypes")
-	public <TypeList extends List> void printJobIds(TypeList jobIds) {
+	public <TypeList extends List> void printList(TypeList jobIds) {
 		for (Object id : jobIds) {
 			System.out.println(id);
 		}
@@ -182,6 +194,10 @@ public class InvokeUrl {
 		Elements content = doc.getElementsByClass("page-item-number"); 
 		for (Element elemnt : content) {
 			nextPageNum = elemnt.text();
+			nextPageNum = ((Integer.parseInt(nextPageNum)) + 1) + "";
+			String nextPageNumUrl = "http://www.cybercoders.com/search/?page=" + nextPageNum
+					+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
+			pageURLs.add(nextPageNumUrl);
 		}
 
 		if ((Integer.parseInt(nextPageNum)) < (Integer.parseInt(prePageNum))) {
@@ -193,6 +209,7 @@ public class InvokeUrl {
 		nextPageNum = ((Integer.parseInt(nextPageNum)) + 1) + "";
 		String nextPageNumUrl = "http://www.cybercoders.com/search/?page=" + nextPageNum
 				+ "&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
+		pageURLs.add(nextPageNumUrl); // add URL to list
 		doc = getHTML(nextPageNumUrl);
 		getMaxPagerSize(doc);
 
@@ -230,29 +247,77 @@ public class InvokeUrl {
 		}
 		return this;
 	}
+	
+	@SuppressWarnings({ "rawtypes", "unused" })
+	public void getAllJobs() throws InterruptedException, IOException{
+		
+		int size = 10;
+		int temp = 0;
+		// Parallel code execution for idivisual element
+		CountDownLatch doneSignal = new CountDownLatch(size);
+		//ExecutorService executor = Executors.newFixedThreadPool(pageURLs.size());
+		
+		for (final Iterator iterator = pageURLs.iterator(); iterator.hasNext();) {
+			
+			temp++;
+			
+			IWorkerFunctor job = new IWorkerFunctor() {
+				@Override
+				public void execute() throws InterruptedException, IOException {
+					String url = (String) iterator.next();
+					getInfo(getHTML(url));
+					System.out.println("Done: " + url);
+				}
+			};
+			
+			new Thread(new WorkerFunctorImpl(doneSignal,job)).start();
+			
+			
+			/*executor.execute(
+					new WorkerFunctorImpl(doneSignal,job)		
+			);*/
 
-	public static void main(String[] args) throws InterruptedException, IOException {
+		}
+		
+		doneSignal.await();           // wait for all to finish
+
+		printSeparator();
+		printList(getJobs());
+	}
+	
+	public void getAll(String url) throws Exception{
+		addURLToPageList(url);
+		getMaxPagerSize(getHTML(url));
+		
+		//printList(pageURLs);
+		
+		printSeparator();
+		
+		getAllJobs();
+	}
+	
+	public void getOnePage(String url) throws Exception{
+		getInfo(getHTML(url));
+		printSeparator();
+		printList(getJobs());
+	}
+
+	public static void main(String[] args) throws InterruptedException, Exception {
 
 		long tStart = System.currentTimeMillis();
 
-		String a = null;
+		String url = null;
 		InvokeUrl invokeUrl = new InvokeUrl();
-		a = "http://www.cybercoders.com/search/?page=1&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
-		invokeUrl.getInfo(invokeUrl.getHTML(a));
-		invokeUrl.printSeparator();
-		invokeUrl.printJobIds(invokeUrl.getJobs());
-
+		url = "http://www.cybercoders.com/search/?page=1&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
+		
+		//invokeUrl.getOnePage(url);
+		invokeUrl.getAll(url);
+		
 		long tEnd = System.currentTimeMillis();
 		long tDelta = tEnd - tStart;
 		double elapsedSeconds = tDelta / 1000.0;
 		System.out.println("Time :" + elapsedSeconds);
-
-		/*
-		 * a =
-		 * "http://www.cybercoders.com/search/?page=2&searchterms=java&searchlocation=&newsearch=true&sorttype=date";
-		 * StringBuffer html = invokeUrl.getHTML(a);
-		 * invokeUrl.getMaxPagerSize(html);
-		 */
+		 
 	}
 
 	public String getJobUrl() {
