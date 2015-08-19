@@ -263,6 +263,11 @@ public class InvokeUrl {
 		return this;
 	}
 	
+	/**
+	 * Retrieve jobs from all pager url
+	 * @throws InterruptedException
+	 * @throws IOException
+	 */
 	@SuppressWarnings({ "rawtypes", "unused" })
 	public void getAllJobs() throws InterruptedException, IOException{
 		
@@ -276,6 +281,7 @@ public class InvokeUrl {
 			
 			temp++;
 			
+			// implement functor to get url form pager section
 			IWorkerFunctor job = new IWorkerFunctor() {
 				@Override
 				public void execute() throws InterruptedException, IOException {
@@ -284,7 +290,7 @@ public class InvokeUrl {
 					System.out.println("Done: " + url);
 				}
 			};
-			
+			// executing all pager url into separate thread
 			new Thread(new WorkerFunctorImpl(doneSignal,job)).start();
 			
 			if(temp == size){
@@ -304,6 +310,11 @@ public class InvokeUrl {
 		System.out.println("No of job retrived: "+jobs.size());
 	}
 	
+	/**
+	 * Start fetching all pager urls
+	 * @param url
+	 * @throws Exception
+	 */
 	public void getAll(String url) throws Exception{
 		addURLToPageList(url);
 		getMaxPagerSize(getHTML(url));
@@ -315,6 +326,11 @@ public class InvokeUrl {
 		getAllJobs();
 	}
 	
+	/**
+	 * get Jobs from one page
+	 * @param url
+	 * @throws Exception
+	 */
 	public void getOnePage(String url) throws Exception{
 		getInfo(getHTML(url));
 		printSeparator();
@@ -341,6 +357,9 @@ public class InvokeUrl {
 		
 	}
 	
+	/**
+	 * printing active thread count
+	 */
 	public static void printActivecount(){
 		new Thread(new Runnable() {
 			

@@ -6,8 +6,6 @@ import java.util.concurrent.CountDownLatch;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import com.info.digger.web.functor.IWorkerFunctor;
-
 public class WorkerJob implements Runnable{
 
 	private final CountDownLatch doneSignal;
@@ -63,6 +61,9 @@ public class WorkerJob implements Runnable{
 		final String jobdesUrl = jobUrlObj.getJobUrl() + jobUrlObj.getLink(anchor); // job Description url
 		job.setJobDescUrl(jobdesUrl);
 		
+		/**
+		 * executing retrieval logic of indv job into separate thread
+		 */
 		Runnable subJob = new Runnable() {
 			
 			@Override
@@ -79,7 +80,6 @@ public class WorkerJob implements Runnable{
 		};
 		new Thread(subJob).start();
 		
-		/*jobUrlObj.getInfoJobDescSetInJob(jobUrlObj.getHTML(jobdesUrl),job);*/
 		jobUrlObj.addJob(job);
 		
 	}

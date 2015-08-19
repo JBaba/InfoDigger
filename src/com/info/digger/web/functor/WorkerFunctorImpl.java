@@ -3,6 +3,11 @@ package com.info.digger.web.functor;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * worker implemented in form of functor
+ * @author nviradia
+ *
+ */
 public class WorkerFunctorImpl implements Runnable{
 
 	private final CountDownLatch doneSignal;
