@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+ 
+ 	<!-- This is loose cupling exp  -->
+	<bean id="OutputHelper" class="com.mkyong.output.OutputHelper">
+		<property name="outputGenerator" ref="CsvOutputGenerator" />
+	</bean>
+ 
+	<bean id="CsvOutputGenerator" class="com.mkyong.output.impl.CsvOutputGenerator" />
+	<bean id="JsonOutputGenerator" class="com.mkyong.output.impl.JsonOutputGenerator" />
+ 
+ 
+ <!-- `	Singlton -->
+ 	 <bean id="customerServiceSinglton" 
+            class="com.mkyong.customer.services.CustomerService" />
+ <!-- Prototype -->           
+     <bean id="customerServicePrototype" 
+            class="com.mkyong.customer.services.CustomerService" scope="prototype"/>
+ 
+ <!-- Prototype into singleton -->
+ 	<bean id="requestProcessor" class="com.mkyong.protoIntoSingle.RequestProcessor">
+    	
+    	<lookup-method name="getValidator" bean="validator"/>
+	</bean>
+
+	<bean id="validator" scope="prototype" class="com.mkyong.protoIntoSingle.RequestValidator">
+	</bean>
+ 
+ <!-- Autowire -->
+ 	<!-- person has a property type of class "ability" -->
+	<bean id="person" class="com.mkyong.common.Person" autowire="byName" />
+		
+	<bean id="invisible" class="com.mkyong.common.Ability" >
+		<property name="skill" value="Invisible" />
+	</bean>
+	 
+</beans>
